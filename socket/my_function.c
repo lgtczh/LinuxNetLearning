@@ -53,20 +53,23 @@ ssize_t recv_peek(int sockfd, void *buf, size_t len)
 
 ssize_t readline(int sockfd, void *buf, size_t maxline)
 {
-    int ret, nread, nleft = maxline;
+    int ret, nread = 0, nleft = maxline;
     char *bufp = (char *)buf;
     while (1){
         ret = recv_peek(sockfd, bufp, nleft);
-        if (ret <= 0)
+        if (ret < 0)
             return ret;
-        nread = ret;
+        else if (ret == 0)
+            return nread;
+        nread += ret;
         int i;
-        for(i=0; i < nread; ++i){
+        for(i=0; i < ret; ++i){
+            int len;
             if (bufp[i] == '\n'){
-                ret = readn(sockfd, bufp, i+1);
-                if (ret != i+1)
+                len = readn(sockfd, bufp, i+1);
+                if (len != i+1)
                     exit(EXIT_FAILURE);
-                return ret;
+                return nread - ret + len;
             }
         }
         if (nread > maxline)

@@ -40,7 +40,7 @@ int main(void)
     if((conn_fd = accept(listenfd, (struct sockaddr*)&peeraddr, &addrlen)) < 0)
         ERR_EXIT("accept");
 
-    printf("accept: ip = %s, port = %d", inet_ntoa(peeraddr.sin_addr), ntohs(peeraddr.sin_port));
+    printf("accept: ip = %s, port = %d\n", inet_ntoa(peeraddr.sin_addr), ntohs(peeraddr.sin_port));
 
     char recvbuf[1024];
     while(1){
