@@ -1,0 +1,14 @@
+.PHONY : my_target clean
+objs = main.o file1.o file2.o
+my_target : $(objs)
+	cc -o my_target $(objs)
+
+main.o : main.c header1.h
+file1.o : file1.c header2.h
+file2.o : file2.c
+
+.PHONY : clean
+clean : 
+	-rm my_target $(objs)
+
+
