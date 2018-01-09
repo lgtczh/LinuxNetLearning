@@ -67,6 +67,7 @@ int main(void)
                 ERR_EXIT("read");
             else if (recv_len == 0){
                 printf("peer close\n");
+                //发送信号给父进程，通知其退出
                 kill(getppid(), SIGUSR1);
                 break;
             }else

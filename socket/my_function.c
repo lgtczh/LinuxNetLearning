@@ -57,9 +57,9 @@ ssize_t readline(int sockfd, void *buf, size_t maxline)
     char *bufp = (char *)buf;
     while (1){
         ret = recv_peek(sockfd, bufp, nleft);
-        if (ret < 0)
+        if (ret < 0){
             return ret;
-        else if (ret == 0)
+        }else if (ret == 0)
             return nread;
         nread += ret;
         int i;
@@ -78,6 +78,7 @@ ssize_t readline(int sockfd, void *buf, size_t maxline)
         //ret = readn(sockfd, bufp, nread);
         //if (ret != nread)
         //    exit(EXIT_FAILURE);
-        bufp += nread;
-    }
+        bufp += ret;
+   }
 }
+

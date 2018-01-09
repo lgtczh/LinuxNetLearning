@@ -7,7 +7,26 @@
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
+#include "my_function.h"
 #include "../err_exit.h"
+void echo_cli(int sock)
+{
+    char sendbuf[1024] = {0};
+    char recvbuf[1024] = {0};
+    while(fgets(sendbuf, sizeof(sendbuf), stdin) != NULL){
+        int w_l = writen(sock, sendbuf, strlen(sendbuf));
+        int ret = readline(sock, recvbuf, sizeof(recvbuf));
+        if (ret == -1)
+	    ERR_EXIT("readline");
+        else if (ret == 0){
+	    printf("service close\n");
+            break;
+        }    
+        fputs(recvbuf, stdout);
+        memset(sendbuf, 0, sizeof(sendbuf));
+        memset(recvbuf, 0, sizeof(recvbuf));
+    }
+}
 
 int main(void)
 {
@@ -20,27 +39,14 @@ int main(void)
     servaddr.sin_family = AF_INET;
     servaddr.sin_port = htons(5199);
     servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
-
+    
     if (connect(sock, (struct sockaddr*)&servaddr, sizeof(servaddr)) < 0)
         ERR_EXIT("connect");
+    
+    echo_cli(sock);
 
-    struct sockaddr_in localaddr;
-    socklen_t addr_len = sizeof(localaddr);
-    int ret;
-    if ((ret = getsockname(sock, (struct sockaddr*)&localaddr, &addr_len)) < 0)
-        ERR_EXIT("getsockname");
-    else
-        printf("local_ip = %s, local_port = %d\n", inet_ntoa(localaddr.sin_addr), ntohs(localaddr.sin_port));
-
-    char sendbuf[1024] = {0};
-    char recvbuf[1024] = {0};
-    while(fgets(sendbuf, sizeof(sendbuf), stdin) != NULL){
-        write(sock, sendbuf, strlen(sendbuf));
-        read(sock, recvbuf, sizeof(recvbuf));
-        fputs(recvbuf, stdout);
-        memset(sendbuf, 0, sizeof(sendbuf));
-        memset(recvbuf, 0, sizeof(recvbuf));
-    }
     close(sock);
     return 0;
+
 }
+

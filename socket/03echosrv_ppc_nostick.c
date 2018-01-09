@@ -8,26 +8,25 @@
 #include <errno.h>
 #include <string.h>
 #include "../err_exit.h"
+#include "my_function.h"
 
-
-void do_service(int conn_fd)
+void echo_srv(int conn_fd)
 {
     char recvbuf[1024];
 
     while(1){
         memset(recvbuf, 0, sizeof(recvbuf));
-        int recv_len = read(conn_fd, recvbuf, sizeof(recvbuf));
-        if (recv_len == 0){//没有接收到内容，认为客户端关闭
+        int recv_len = readline(conn_fd, recvbuf, sizeof(recvbuf));
+        if (recv_len == 0){
             printf("Client close\n");
             break;
         }else if(recv_len < 0){
             ERR_EXIT("client read");
         }
         fputs(recvbuf, stdout);
-        write(conn_fd, recvbuf, recv_len);
+        writen(conn_fd, recvbuf, recv_len);
     }
 }
-
 int main(void)
 {
     int listenfd;
@@ -67,8 +66,7 @@ int main(void)
         else if (pid == 0){
             printf("I am child.I deal one client,my pid is %d\n", getpid());
             close(listenfd);
-            do_service(conn_fd);
-            //连接的客户端断开，子进程必须退出
+            echo_srv(conn_fd);
             exit(EXIT_SUCCESS);
         }else{
             printf("I am father.I wait one client,my pid is %d\n", getpid());
@@ -78,5 +76,3 @@ int main(void)
     return 0;
 }
 
-
-    
