@@ -1,6 +1,6 @@
 .PHONY : all clean
 objects = 03echosrv_ppc_defineprotocol.o 03echocli_defineprotocol.o my_function.o \
-03echosrv_recv.o 03echocli_recv.o 03echosrv_ppc_nostick.o 03echocli_nostick.o # \
+03echosrv_recv.o 03echocli_recv.o 03echosrv_ppc_nostick.o 03echocli_nostick.o 03echocli_nostick_select.o# \
 #03echocli.o 03echosrv.o
 all : $(objects)
 
@@ -12,6 +12,9 @@ all : $(objects)
 	gcc my_function.o 03echosrv_ppc_nostick.c -o 03echosrv_ppc_nostick.o
 03echocli_nostick.o:my_function.o ../err_exit.h 03echocli_nostick.c
 	gcc my_function.o 03echocli_nostick.c -o 03echocli_nostick.o
+
+03echocli_nostick_select.o:my_function.o ../err_exit.h 03echocli_nostick.c
+	gcc my_function.o 03echocli_nostick_select.c -o 03echocli_nostick_select.o
 
 03echosrv_ppc_defineprotocol.o:my_function.o 03echosrv_ppc_defineprotocol.c ../err_exit.h packet.h
 	gcc my_function.o 03echosrv_ppc_defineprotocol.c -o 03echosrv_ppc_defineprotocol.o
