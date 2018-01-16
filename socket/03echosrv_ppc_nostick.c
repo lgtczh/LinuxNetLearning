@@ -51,7 +51,7 @@ int main(void)
         ERR_EXIT("listen");
 
     struct sockaddr_in peeraddr;
-    socklen_t addrlen = sizeof(peeraddr);
+    socklen_t addrlen = sizeof(peeraddr);//必须有初始值，accept之后为对方地址的长度
    
     int conn_fd; 
     pid_t pid;
