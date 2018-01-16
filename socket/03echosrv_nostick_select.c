@@ -113,6 +113,7 @@ int main(void)
                 if (ret == -1) {
                     FD_CLR(conn_fd, &allset);
                     conn_fd_set[i] = -1;
+                    close(conn_fd);//必须关闭套接口
                     //判断是否要更新maxfd
                     if (i == maxfd)
                         for (int j = i-1; j >= 0; --j)
