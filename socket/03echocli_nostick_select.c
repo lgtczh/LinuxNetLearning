@@ -44,7 +44,8 @@ void echo_cli(int sock)
             }
             fputs(recvbuf, stdout);
             memset(recvbuf, 0, sizeof(recvbuf));
-        }else{
+        }
+        if (FD_ISSET(stdin, &readfds)){
             //如果返回NULL，说明触发了Ctrl-D，客户端被关闭，跳出循环
             if (fgets(sendbuf, sizeof(sendbuf), stdin) == NULL)
                 break;
