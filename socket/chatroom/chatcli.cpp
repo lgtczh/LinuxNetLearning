@@ -85,7 +85,7 @@ void chat_cli(int sock)
     }
 
     // 进入聊天
-    printf("\nYou can user these commands:\n");
+    printf("\nYou can use these commands:\n");
     printf("send <username> <msg>   给<username>发送<msg>\n");
     printf("list                    列出所有在线客户名单\n");
     printf("exit                    退出客户端\n");
@@ -142,6 +142,12 @@ void chat_cli(int sock)
             }
         }
     } // end while
+    msg.cmd = htonl(C2S_LOGOUT);
+    strcpy(msg.body, username);
+    if (sendto(sock, &msg, sizeof(msg), 0, (struct sockaddr*)&srv_addr, sizeof(srv_addr)) == -1)
+        ERR_EXIT("sendto[C2S_LOGOUT]");
+    printf("You has logout from room.\n");
+    exit(EXIT_SUCCESS);
 }
 
 void parse_cmd(char *cmdline, int sock, struct sockaddr_in *srv_addr)
@@ -202,23 +208,28 @@ void do_someone_login(MESSAGE& login)
 
 void do_someone_logout(int sock, MESSAGE& logout, sockaddr_in *srv_addr)
 {
+    USER_INFO user;
+    memset(&user, 0, sizeof(USER_INFO));
+    memcpy(user.username, logout.body, sizeof(user.username));
     int count = 1;
     do {
-        USER_INFO *user = (USER_INFO*)logout.body;
-        USER_LIST::iterator it = std::find(client_list.begin(), client_list.end(), *user);
+        printf("%s logout\n", user.username);
+        USER_LIST::iterator it = find(client_list.begin(), client_list.end(), user);
         if (it != client_list.end()) {
             client_list.erase(it);
             printf("User[%s] has logout the room\n", username);
             return;
         }
         if (count > 0) {
-            printf("Find unknown user[%s], update the client list...\n", username);
+            printf("Find unknown user[%s], update the client list...\n", user.username);
             send_getlist(sock, srv_addr);
-            do_getlist(sock);
+            sleep(3);
+            --count;
+            continue;
         } else {
-            printf("The user[%s] is not find in server.\n", username);
+            printf("The user[%s] is not find in server.\n", user.username);
+            -- count;
         }
-        -- count;
     }while(count >= 0);
 }
 
@@ -235,8 +246,8 @@ void send_getlist(int sock, struct sockaddr_in *srv_addr)
 void do_getlist(int sock)
 {
     int count;
-    recvfrom(sock, &count, sizeof(count), 0, NULL, NULL);
-
+    recvfrom(sock, &count, sizeof(int), 0, NULL, NULL);
+    count = ntohl(count);
     USER_INFO user;
     for (int i = 0;i < count; ++ i){
         recvfrom(sock, &user, sizeof(user), 0, NULL, NULL);
@@ -256,7 +267,7 @@ bool send_msg(int sock, char* user, char* msg_body, sockaddr_in* srv_addr)
         printf("You can't send message to yourself\n");
         return false;
     }
-    int count = 1;
+    int  count = 1;
     USER_LIST::iterator it;
     do {
         for (it = client_list.begin(); it != client_list.end(); ++ it)
@@ -267,14 +278,14 @@ bool send_msg(int sock, char* user, char* msg_body, sockaddr_in* srv_addr)
         if (it == client_list.end() && count > 0) {
             printf("I can't find the user \"%s\", update the client data...\n", user);
             send_getlist(sock, srv_addr);
-            do_getlist(sock);
-            -- count;
+            --count;
+            continue;
         }else{
             printf("The user \"%s\" did not login in room\n", user);
             return false;
         }
-    }while(count <= 0);
 
+    }while(count <= 0);
     MESSAGE msg;
     memset(&msg, 0, sizeof(msg));
     msg.cmd = htonl(C2C_CHAT);

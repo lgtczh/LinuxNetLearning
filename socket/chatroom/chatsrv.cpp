@@ -15,7 +15,7 @@
 USER_LIST client_list;
 
 void do_login(MESSAGE& new_client, int sock, struct sockaddr_in *cli_addr);
-void do_logout(MESSAGE& logout_client, int sock, struct sockaddr_in *cli_addr);
+void do_logout(char* username, int sock, struct sockaddr_in *cli_addr);
 void do_send_list(int, struct sockaddr_in *);
 
 void chat_srv(int sock);
@@ -63,7 +63,9 @@ void chat_srv(int sock)
                 do_login(msg, sock, &cli_addr);  // 处理用户登录
                 break;
             case C2S_LOGOUT:
-                do_logout(msg, sock, &cli_addr);  // 处理用户退出
+                char user_name[16];
+                memcpy(user_name, &msg.body, sizeof(user_name));
+                do_logout(user_name, sock, &cli_addr);  // 处理用户退出
                 break;
             case C2S_ONLINE_USER:
                 do_send_list(sock, &cli_addr);  // 给用户返回所有用户列表
@@ -103,7 +105,7 @@ void do_login(MESSAGE& new_client, int sock, struct sockaddr_in* cli_addr)
         reply_msg.cmd = htonl(S2C_ALREADY_LOGINED);
         if(sendto(sock, &reply_msg, sizeof(reply_msg), 0, (struct sockaddr*)cli_addr, sizeof(*cli_addr)) == -1)
             ERR_EXIT("sendto[ALREADY_LOGINED]");
-        
+
         printf("The client %s[%s:%d] has already logined\n", user.username,inet_ntoa(cli_addr->sin_addr), ntohs(user.port));
     } else {
         // username不存在
@@ -152,24 +154,25 @@ void do_login(MESSAGE& new_client, int sock, struct sockaddr_in* cli_addr)
 
 }
 
-void do_logout(MESSAGE& logout_client, int sock, struct sockaddr_in *cli_addr)
+void do_logout(char* username, int sock, struct sockaddr_in *cli_addr)
 {
     USER_LIST::iterator it;
     for (it = client_list.begin(); it != client_list.end(); ++ it)
-        if (strcmp(it->username, logout_client.body) == 0)
+        if (strcmp(it->username, username) == 0)
             break;
 
     if (it != client_list.end()) {
         client_list.erase(it);
-        printf("user \"%s\" has logout!\n", logout_client.body);
+        printf("user \"%s\" has logout!\n", username);
     } else {
-        printf("can't find user \"%s\"\n", logout_client.body);
+        printf("can't find user \"%s\"\n", username);
     }
 
     MESSAGE msg;
     memset(&msg, 0, sizeof(msg));
     msg.cmd = htonl(S2C_SOMEONE_LOGOUT);
-    memcpy(&msg.body, &logout_client, sizeof(logout_client));
+    memcpy(&msg.body, username, sizeof(username));
+    printf("logout_clinet : %s\n", username);
     struct sockaddr_in peer_addr;
     socklen_t peer_len;
     for (it = client_list.begin(); it != client_list.end(); ++ it){
@@ -178,8 +181,8 @@ void do_logout(MESSAGE& logout_client, int sock, struct sockaddr_in *cli_addr)
         peer_addr.sin_port = it->port;
         peer_addr.sin_addr.s_addr = it->ip;
         peer_len = sizeof(peer_addr);
-        if (sendto(sock, &msg, sizeof(msg), 0, (struct sockaddr*)&peer_addr, peer_len))
-            ERR_EXIT("sendto");
+        if (sendto(sock, &msg, sizeof(msg), 0, (struct sockaddr*)&peer_addr, peer_len) == -1)
+            ERR_EXIT("logout_sendto");
     }
 }
 
@@ -190,8 +193,8 @@ void do_send_list(int sock, sockaddr_in *peer_addr)
     if (sendto(sock, &msg, sizeof(MESSAGE), 0, (struct sockaddr*)peer_addr, sizeof(*peer_addr)) == -1)
         ERR_EXIT("sendto[ONLINE_USER]");
 
-    int size = client_list.size();
-    if (sendto(sock, &size, sizeof(int), 0, (struct sockaddr*)peer_addr, sizeof(*peer_addr)) == -1)
+    int size = htonl((int)client_list.size());
+    if (sendto(sock, (const char*)&size, sizeof(int), 0, (struct sockaddr*)peer_addr, sizeof(*peer_addr)) == -1)
         ERR_EXIT("sendto");
 
     for (USER_LIST::iterator it = client_list.begin(); it != client_list.end(); ++ it){
